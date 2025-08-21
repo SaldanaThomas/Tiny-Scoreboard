@@ -1,0 +1,4 @@
+# Ignore PyInstaller build artifacts
+/build/
+/dist/
+Tiny Scoreboard.spec
