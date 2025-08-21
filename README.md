@@ -1,6 +1,6 @@
 # A small gui app used for tournament stream management
 
-Specifically desiged for fighting games
+[Download Current Build](https://github.com/SaldanaThomas/Tiny-Scoreboard/releases)
 
 ## Features currently include:
 - Live editing
