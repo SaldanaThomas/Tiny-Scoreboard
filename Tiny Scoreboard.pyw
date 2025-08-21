@@ -148,7 +148,7 @@ def update_file_paths():
         "Player 2": os.path.join(PERSISTENT_DATA_DIR, "Player2.txt"),
         "Score 1": os.path.join(PERSISTENT_DATA_DIR, "Score1.txt"),
         "Score 2": os.path.join(PERSISTENT_DATA_DIR, "Score2.txt"),
-        "Set": os.path.join(PERSISTENT_DATA_DIR, "Set.txt"),
+        "Bracket": os.path.join(PERSISTENT_DATA_DIR, "Bracket.txt"),
         "Event": os.path.join(PERSISTENT_DATA_DIR, "Event.txt"),
         "Theme": os.path.join(PERSISTENT_DATA_DIR, "Theme.txt"),
         "Flag 1": os.path.join(PERSISTENT_DATA_DIR, "Flag1.txt"),
@@ -389,7 +389,7 @@ p1_var = tk.StringVar()
 p2_var = tk.StringVar()
 score1_var = tk.StringVar()
 score2_var = tk.StringVar()
-set_var = tk.StringVar()
+bracket_var = tk.StringVar()
 event_var = tk.StringVar()
 flag1_var = tk.StringVar()
 flag2_var = tk.StringVar()
@@ -424,7 +424,7 @@ def load_all_vars():
     load_var(p2_var, "Player 2")
     load_var(score1_var, "Score 1")
     load_var(score2_var, "Score 2")
-    load_var(set_var, "Set")
+    load_var(bracket_var, "Bracket")
     load_var(event_var, "Event")
     load_var(flag1_var, "Flag 1")
     load_var(flag2_var, "Flag 2")
@@ -726,10 +726,10 @@ event_entry.bind("<KeyRelease>", lambda e: save_to_file("Event", event_var.get()
 event_entry.bind("<Return>", lambda e: remove_focus())
 event_entry.bind("<FocusOut>", lambda e: event_entry.selection_clear())
 
-ttk.Label(frame, text="Set:").grid(column=2, row=0, sticky=tk.W, padx=(2, 0), pady=2)
-set_entry = ttk.Entry(frame, textvariable=set_var, width=33)
-set_entry.grid(column=3, row=0, padx=(30, 1), pady=2, ipady=5, sticky=tk.W)
-set_entry.bind("<KeyRelease>", lambda e: save_to_file("Set", set_var.get()))
+ttk.Label(frame, text="Bracket:").grid(column=2, row=0, sticky=tk.W, padx=(2, 0), pady=2)
+set_entry = ttk.Entry(frame, textvariable=bracket_var, width=33)
+set_entry.grid(column=3, row=0, padx=(2, 1), pady=2, ipady=5, sticky=tk.W)
+set_entry.bind("<KeyRelease>", lambda e: save_to_file("Bracket", bracket_var.get()))
 set_entry.bind("<Return>", lambda e: remove_focus())
 set_entry.bind("<FocusOut>", lambda e: set_entry.selection_clear())
 
@@ -925,7 +925,7 @@ def reset_all():
     reset_names()
     reset_scores()
     reset_flags()
-    set_var.set("")
+    bracket_var.set("")
     event_var.set("")
     save_to_file("Set", "")
     save_to_file("Event", "")
