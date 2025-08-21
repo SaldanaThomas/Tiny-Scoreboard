@@ -12,7 +12,7 @@ Specifically desiged for fighting games
 ## Data fields are generated to .txt files which can then be linked to OBS or other streaming platforms
 
 <p>
-<img src="assets/scoreboard11.png"/>
-<img src="assets/scoreboard12.png"/>
-<img src="assets/scoreboard13.png"/>
+<img src="assets/scoreboard1.png"/>
+<img src="assets/scoreboard2.png"/>
+<img src="assets/scoreboard3.png"/>
 </p>
