@@ -927,7 +927,7 @@ def reset_all():
     reset_flags()
     bracket_var.set("")
     event_var.set("")
-    save_to_file("Set", "")
+    save_to_file("Bracket", "")
     save_to_file("Event", "")
 
 # --- Button Layout (ROW 3) ---
