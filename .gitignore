@@ -3,5 +3,5 @@
 /dist/
 Tiny Scoreboard.spec
 
-# Ignore pycahce
+# Ignore pycache
 /__pycache__/
