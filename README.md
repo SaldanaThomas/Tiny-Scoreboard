@@ -1,6 +1,4 @@
-# A small gui app used for tournament stream management
-
-[Download Current Build](https://github.com/SaldanaThomas/Tiny-Scoreboard/releases)
+# [Download Current Build](https://github.com/SaldanaThomas/Tiny-Scoreboard/releases)
 
 ## Features currently include:
 - Live editing
