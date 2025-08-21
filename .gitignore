@@ -2,3 +2,6 @@
 /build/
 /dist/
 Tiny Scoreboard.spec
+
+# Ignore pycahce
+/__pycache__/
