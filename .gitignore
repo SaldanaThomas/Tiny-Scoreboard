@@ -3,9 +3,8 @@
 /dist/
 Tiny Scoreboard.spec
 
-<<<<<<< HEAD
-/__pycache__/
-=======
 # Ignore pycache
 /__pycache__/
->>>>>>> d8d8ac600aa1bb020fb9c3fc684396b8d6d83dff
+
+# Ignore README assets
+/assets/
