@@ -195,7 +195,7 @@ country_map = {
     "Uzbekistan": "UZ",
     "Vanuatu": "VU",
     "Vatican City": "VA",
-    "VE": "VE",
+    "Venezuela": "VE",
     "Vietnam": "VN",
     "Yemen": "YE",
     "Zambia": "ZM",

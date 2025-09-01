@@ -3,8 +3,7 @@ from tkinter import ttk, messagebox, filedialog
 from tkinter import font as tkfont
 import os
 import sys
-
-# --- New Imports ---
+import shutil
 from country_data import country_map, country_names
 from theme_data import themes, theme_colors
 
@@ -711,11 +710,47 @@ def validate_score_input(new_value):
 
 vcmd = (root.register(validate_score_input), "%P")
 
+# Update designated score file
 def update_score_file(var, label):
-    """Saves the score value to the file, writing an empty string if the value is empty."""
     value = var.get()
     save_to_file(label, value)
 
+def get_country_code(country_name):
+    country_code = country_map.get(country_name, "")
+    return country_code
+
+# Update designated flag png file
+def update_flag_image(country_code, flag_number):
+    flag_images = os.path.join(PERSISTENT_DATA_DIR, "Flags")
+    selected_flag = os.path.join(flag_images, f"{country_code}.png")
+    saved_flag = os.path.join(PERSISTENT_DATA_DIR, f"Flag{flag_number}.png")
+
+    os.makedirs(flag_images, exist_ok=True)
+    
+    # Copy the flag image if it exists, otherwise remove the destination image
+    if os.path.exists(selected_flag):
+        try:
+            shutil.copyfile(selected_flag, saved_flag)
+            print(f"Copied flag from {selected_flag} to {saved_flag}")
+        except Exception as e:
+            messagebox.showerror("Flag Error", f"Failed to copy flag image:\n{e}")
+    elif os.path.exists(saved_flag):
+        # If the new selection has no flag, delete the existing one
+        try:
+            os.remove(saved_flag)
+        except Exception as e:
+            print(f"Failed to remove old flag image: {e}")
+
+    # Save the country code to the Flag file, even if no image exists
+    if flag_number == 1:
+        flag_var = flag1_var
+        label = "Flag 1"
+    else:
+        flag_var = flag2_var
+        label = "Flag 2"
+    
+    save_to_file(label, country_code)
+    flag_var.set(country_code)
 
 # --- WIDGETS ---
 # ROW 0
@@ -732,7 +767,6 @@ set_entry.grid(column=3, row=0, padx=(2, 1), pady=2, ipady=5, sticky=tk.W)
 set_entry.bind("<KeyRelease>", lambda e: save_to_file("Bracket", bracket_var.get()))
 set_entry.bind("<Return>", lambda e: remove_focus())
 set_entry.bind("<FocusOut>", lambda e: set_entry.selection_clear())
-
 
 # ROW 1
 ttk.Label(frame, text="Player 1:").grid(column=0, row=1, sticky=tk.W, padx=1, pady=2)
@@ -772,8 +806,7 @@ def highlight_top_option(event):
     event.widget.configure(active=0)
 
 combo_flag1.bind("<<ComboboxSelected>>", lambda e: (
-    flag1_var.set(country_map.get(flag1_var.get(), "")),
-    save_to_file("Flag 1", flag1_var.get()),
+    update_flag_image(get_country_code(combo_flag1.get()), 1),
     remove_focus()
 ))
 combo_flag1.bind("<<ComboboxPopdown>>", highlight_top_option)
@@ -811,8 +844,7 @@ ttk.Label(score_flags_2_frame, text="Flag 2:").grid(column=2, row=0, sticky=tk.W
 combo_flag2 = ttk.Combobox(score_flags_2_frame, textvariable=flag2_var, values=country_names, state='readonly', width=13)
 combo_flag2.grid(column=3, row=0, padx=1, sticky="ns")
 combo_flag2.bind("<<ComboboxSelected>>", lambda e: (
-    flag2_var.set(country_map.get(flag2_var.get(), "")),
-    save_to_file("Flag 2", flag2_var.get()),
+    update_flag_image(get_country_code(combo_flag2.get()), 2),
     remove_focus()
 ))
 combo_flag2.bind("<<ComboboxPopdown>>", highlight_top_option)
@@ -885,7 +917,6 @@ def key_release_handler(event):
 root.bind('<KeyPress>', key_press_handler)
 root.bind('<KeyRelease>', key_release_handler)
 
-
 # --- Button Functions ---
 def swap_names():
     p1 = p1_var.get()
@@ -903,28 +934,44 @@ def swap_scores():
     save_to_file("Score 1", score2)
     save_to_file("Score 2", score1)
 
-def reset_names():
+def swap_flags():
+    flag1 = flag1_var.get()
+    flag2 = flag2_var.get()
+    flag1_var.set(flag2)
+    flag2_var.set(flag1)
+    save_to_file("Flag 1", flag2)
+    save_to_file("Flag 2", flag1)
+    update_flag_image(flag2, 1)
+    update_flag_image(flag1, 2)
+
+def reset_players():
     p1_var.set("")
     p2_var.set("")
     save_to_file("Player 1", "")
     save_to_file("Player 2", "")
-
-def reset_scores():
     score1_var.set("0")
     score2_var.set("0")
     save_to_file("Score 1", "0")
     save_to_file("Score 2", "0")
-
-def reset_flags():
     flag1_var.set("")
     flag2_var.set("")
     save_to_file("Flag 1", "")
     save_to_file("Flag 2", "")
+    flag1_path = os.path.join(PERSISTENT_DATA_DIR, "Flag1.png")
+    flag2_path = os.path.join(PERSISTENT_DATA_DIR, "Flag2.png")
+    if os.path.exists(flag1_path):
+        try:
+            os.remove(flag1_path)
+        except Exception as e:
+            print(f"Error removing Flag1.png: {e}")
+    if os.path.exists(flag2_path):
+        try:
+            os.remove(flag2_path)
+        except Exception as e:
+            print(f"Error removing Flag2.png: {e}")
 
 def reset_all():
-    reset_names()
-    reset_scores()
-    reset_flags()
+    reset_players()
     bracket_var.set("")
     event_var.set("")
     save_to_file("Bracket", "")
@@ -936,8 +983,8 @@ button_frame.grid(column=0, row=3, columnspan=4, pady=(10, 0), sticky=tk.W+tk.E)
 
 swap_names_btn = ttk.Button(button_frame, text="Swap Names", command=swap_names)
 swap_scores_btn = ttk.Button(button_frame, text="Swap Scores", command=swap_scores)
-reset_names_btn = ttk.Button(button_frame, text="Reset Names", command=reset_names)
-reset_scores_btn = ttk.Button(button_frame, text="Reset Scores", command=reset_scores)
+reset_names_btn = ttk.Button(button_frame, text="Swap Flags", command=swap_flags)
+reset_scores_btn = ttk.Button(button_frame, text="Reset Players", command=reset_players)
 reset_all_btn = ttk.Button(button_frame, text="Reset All", command=reset_all)
 
 swap_names_btn.grid(row=0, column=0, padx=2, pady=2, sticky=tk.W+tk.E)
