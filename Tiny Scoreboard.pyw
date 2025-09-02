@@ -139,8 +139,8 @@ def save_path_to_config(new_path):
 # File Management
 # ----------------------------
 
-def update_file_paths():
-    """Define file paths for all scoreboard elements."""
+# Define file paths for all scoreboard elements
+def set_file_paths():
     global file_paths
     file_paths = {
         "Player 1": os.path.join(PERSISTENT_DATA_DIR, "Player1.txt"),
@@ -149,14 +149,15 @@ def update_file_paths():
         "Score 2": os.path.join(PERSISTENT_DATA_DIR, "Score2.txt"),
         "Bracket": os.path.join(PERSISTENT_DATA_DIR, "Bracket.txt"),
         "Event": os.path.join(PERSISTENT_DATA_DIR, "Event.txt"),
+        "Round": os.path.join(PERSISTENT_DATA_DIR, "Round.txt"),
         "Theme": os.path.join(PERSISTENT_DATA_DIR, "Theme.txt"),
         "Flag 1": os.path.join(PERSISTENT_DATA_DIR, "Flag1.txt"),
         "Flag 2": os.path.join(PERSISTENT_DATA_DIR, "Flag2.txt"),
         "PlayerList": os.path.join(PERSISTENT_DATA_DIR, "PlayerList.txt"),
     }
 
+# Create missing files with default values
 def initialize_files():
-    """Create missing files with default values."""
     for label, path in file_paths.items():
         if not os.path.exists(path):
             with open(path, 'w', encoding='utf-8') as f:
@@ -167,13 +168,11 @@ def initialize_files():
                 else:
                     f.write("")  # Default empty value
 
-update_file_paths()
+set_file_paths()
 initialize_files()
 
+# Update file with new value; update backup file if applicable
 def save_to_file(label, value):
-    """
-    Save a value to the primary file and backup (if applicable).
-    """
     # Exclude specific files from being saved to the backup path
     if label in ("Theme", "PlayerList"):
         # Save only to the primary file path
@@ -188,12 +187,12 @@ def save_to_file(label, value):
     else:
         value_to_write = str(value)
     
-    # Save to primary file
+    # Save to file
     primary_path = file_paths[label]
     with open(primary_path, 'w', encoding='utf-8') as f:
         f.write(value_to_write)
 
-    # Save to backup path if different from persistent data dir
+    # Save to backup file
     if backup_path != PERSISTENT_DATA_DIR:
         backup_file_path = os.path.join(backup_path, os.path.basename(primary_path))
         try:
@@ -206,10 +205,8 @@ def save_to_file(label, value):
 # Autocomplete functionality
 # ----------------------------
 
+# Load player names from PlayerList.txt into a list
 def load_player_list():
-    """
-    Loads player names from PlayerList.txt into a list. If the file doesn't exist, returns an empty list.
-    """
     player_list_path = file_paths["PlayerList"]
     if not os.path.exists(player_list_path):
         return []
@@ -370,7 +367,7 @@ try:
     with open(file_paths["Theme"], "r", encoding="utf-8") as f:
         saved_theme = f.read().strip()
     current_theme = tk.StringVar(
-            value=saved_theme if saved_theme in ["Light", "Dark", "High Contrast", "Red", "Blue", "Green"]
+            value=saved_theme if saved_theme in ["Light", "Dark", "High Contrast", "Forest", "Ocean", "Mountain", "Sunrise", "Sunset", "Midnight", "Wine"]
             else "Dark"
         )
 except FileNotFoundError:
@@ -388,8 +385,11 @@ p1_var = tk.StringVar()
 p2_var = tk.StringVar()
 score1_var = tk.StringVar()
 score2_var = tk.StringVar()
+score1_var.score_id = 1
+score2_var.score_id = 2
 bracket_var = tk.StringVar()
 event_var = tk.StringVar()
+round_var = tk.StringVar()
 flag1_var = tk.StringVar()
 flag2_var = tk.StringVar()
 
@@ -398,11 +398,8 @@ flag2_var = tk.StringVar()
 # Variable Loading
 # ----------------------------
 
+# Load single scoreboard variable from its respective file
 def load_var(var, label, cast=str):
-    """
-    Load a variable's value from its associated file.
-    - cast: type to cast the file content to (str or int).
-    """
     try:
         with open(file_paths[label], 'r', encoding='utf-8') as f:
             file_value = f.read().strip()
@@ -417,14 +414,15 @@ def load_var(var, label, cast=str):
     except FileNotFoundError:
         var.set(cast(0) if cast == int else "")
 
+# Load all scoreboard variables from their respective files
 def load_all_vars():
-    """Load all scoreboard variables from their respective files."""
     load_var(p1_var, "Player 1")
     load_var(p2_var, "Player 2")
     load_var(score1_var, "Score 1")
     load_var(score2_var, "Score 2")
     load_var(bracket_var, "Bracket")
     load_var(event_var, "Event")
+    load_var(round_var, "Round")
     load_var(flag1_var, "Flag 1")
     load_var(flag2_var, "Flag 2")
 
@@ -753,7 +751,7 @@ def update_flag_image(country_code, flag_number):
     flag_var.set(country_code)
 
 # --- WIDGETS ---
-# ROW 0
+# ROW 0 (Event/Bracket)
 ttk.Label(frame, text="Event:").grid(column=0, row=0, sticky=tk.W, padx=(1, 0), pady=2)
 event_entry = ttk.Entry(frame, textvariable=event_var, width=30)
 event_entry.grid(column=1, row=0, padx=(2, 1), pady=2, ipady=5)
@@ -768,38 +766,43 @@ set_entry.bind("<KeyRelease>", lambda e: save_to_file("Bracket", bracket_var.get
 set_entry.bind("<Return>", lambda e: remove_focus())
 set_entry.bind("<FocusOut>", lambda e: set_entry.selection_clear())
 
-# ROW 1
-ttk.Label(frame, text="Player 1:").grid(column=0, row=1, sticky=tk.W, padx=1, pady=2)
+# Row 1 (Round)
+ttk.Label(frame, text="Round:").grid(column=0, row=1, sticky=tk.W, padx=(1, 0), pady=2)
+round_entry = ttk.Entry(frame, textvariable=round_var, width=30)
+round_entry.grid(column=1, row=1, padx=(2, 1), pady=2, ipady=5, sticky=tk.W)
+round_entry.bind("<KeyRelease>", lambda e: save_to_file("Round", round_var.get()))
+round_entry.bind("<Return>", lambda e: remove_focus())
+round_entry.bind("<FocusOut>", lambda e: set_entry.selection_clear())
+
+# ROW 2 (Player 1)
+ttk.Label(frame, text="Player 1:").grid(column=0, row=2, sticky=tk.W, padx=1, pady=2)
 p1_entry = ttk.Entry(frame, textvariable=p1_var, width=30)
-p1_entry.grid(column=1, row=1, padx=(2, 1), pady=2, ipady=5)
+p1_entry.grid(column=1, row=2, padx=(2, 1), pady=2, ipady=5)
 p1_entry.bind("<Return>", lambda e: remove_focus())
 p1_entry.bind("<FocusOut>", lambda e: p1_entry.selection_clear())
-
 p1_listbox = tk.Listbox(root, height=3, width=39, font=('Arial', 10), relief="flat", highlightthickness=0)
 p1_listbox.place_forget()
 autocomplete_entry_bind(p1_entry, p1_listbox, p1_var, 1)
 
 score_flags_1_frame = ttk.Frame(frame)
-score_flags_1_frame.grid(column=2, row=1, columnspan=2, sticky=tk.W, padx=1, pady=1)
+score_flags_1_frame.grid(column=2, row=2, columnspan=2, sticky=tk.W, padx=1, pady=1)
 
-ttk.Label(score_flags_1_frame, text="Score 1:").grid(column=0, row=0, sticky=tk.W)
+ttk.Label(score_flags_1_frame, text="Score 1:").grid(column=0, row=2, sticky=tk.W)
 score1_box = ttk.Frame(score_flags_1_frame)
-score1_box.grid(column=1, row=0, padx=(2, 0), sticky=tk.W)
-
+score1_box.grid(column=1, row=2, padx=(2, 0), sticky=tk.W)
 score1_entry = ttk.Entry(score1_box, textvariable=score1_var, width=4, validate='key', validatecommand=vcmd)
-score1_entry.grid(row=0, column=0, padx=1, sticky="ns")
+score1_entry.grid(row=2, column=0, padx=1, sticky="ns")
 score1_entry.bind("<KeyRelease>", lambda e: update_score_file(score1_var, "Score 1"))
 score1_entry.bind("<Return>", lambda e: remove_focus())
 score1_entry.bind("<FocusOut>", lambda e: score1_entry.selection_clear())
-
 btn_up1 = ttk.Button(score1_box, text="▲", width=2)
-btn_up1.grid(row=0, column=1, padx=1, sticky="ns")
+btn_up1.grid(row=2, column=1, padx=1, sticky="ns")
 btn_down1 = ttk.Button(score1_box, text="▼", width=2)
-btn_down1.grid(row=0, column=2, padx=1, sticky="ns")
+btn_down1.grid(row=2, column=2, padx=1, sticky="ns")
 
-ttk.Label(score_flags_1_frame, text="Flag 1:").grid(column=2, row=0, sticky=tk.W, padx=(0, 1))
+ttk.Label(score_flags_1_frame, text="Flag 1:").grid(column=2, row=2, sticky=tk.W, padx=(0, 1))
 combo_flag1 = ttk.Combobox(score_flags_1_frame, textvariable=flag1_var, values=country_names, state='readonly', width=13)
-combo_flag1.grid(column=3, row=0, padx=1, sticky="ns")
+combo_flag1.grid(column=3, row=2, padx=1, sticky="ns")
 
 def highlight_top_option(event):
     """Highlights the top item (index 0) of the dropdown list when it's opened."""
@@ -811,38 +814,35 @@ combo_flag1.bind("<<ComboboxSelected>>", lambda e: (
 ))
 combo_flag1.bind("<<ComboboxPopdown>>", highlight_top_option)
 
-# ROW 2
-ttk.Label(frame, text="Player 2:").grid(column=0, row=2, sticky=tk.W, padx=1, pady=2)
+# ROW 3 (Player 2)
+ttk.Label(frame, text="Player 2:").grid(column=0, row=3, sticky=tk.W, padx=1, pady=2)
 p2_entry = ttk.Entry(frame, textvariable=p2_var, width=30)
-p2_entry.grid(column=1, row=2, padx=(2, 1), pady=2, ipady=5)
+p2_entry.grid(column=1, row=3, padx=(2, 1), pady=2, ipady=5)
 p2_entry.bind("<Return>", lambda e: remove_focus())
 p2_entry.bind("<FocusOut>", lambda e: p2_entry.selection_clear())
-
 p2_listbox = tk.Listbox(root, height=3, width=39, font=('Arial', 10), relief="flat", highlightthickness=0)
 p2_listbox.place_forget()
 autocomplete_entry_bind(p2_entry, p2_listbox, p2_var, 2)
 
 score_flags_2_frame = ttk.Frame(frame)
-score_flags_2_frame.grid(column=2, row=2, columnspan=2, sticky=tk.W, padx=1, pady=1)
+score_flags_2_frame.grid(column=2, row=3, columnspan=2, sticky=tk.W, padx=1, pady=1)
 
-ttk.Label(score_flags_2_frame, text="Score 2:").grid(column=0, row=0, sticky=tk.W)
+ttk.Label(score_flags_2_frame, text="Score 2:").grid(column=0, row=3, sticky=tk.W)
 score2_box = ttk.Frame(score_flags_2_frame)
-score2_box.grid(column=1, row=0, padx=(2, 0), sticky=tk.W)
-
+score2_box.grid(column=1, row=3, padx=(2, 0), sticky=tk.W)
 score2_entry = ttk.Entry(score2_box, textvariable=score2_var, width=4, validate='key', validatecommand=vcmd)
-score2_entry.grid(row=0, column=0, padx=1, sticky="ns")
+score2_entry.grid(row=3, column=0, padx=1, sticky="ns")
 score2_entry.bind("<KeyRelease>", lambda e: update_score_file(score2_var, "Score 2"))
 score2_entry.bind("<Return>", lambda e: remove_focus())
 score2_entry.bind("<FocusOut>", lambda e: score2_entry.selection_clear())
-
 btn_up2 = ttk.Button(score2_box, text="▲", width=2)
-btn_up2.grid(row=0, column=1, padx=1, sticky="ns")
+btn_up2.grid(row=3, column=1, padx=1, sticky="ns")
 btn_down2 = ttk.Button(score2_box, text="▼", width=2)
-btn_down2.grid(row=0, column=2, padx=1, sticky="ns")
+btn_down2.grid(row=3, column=2, padx=1, sticky="ns")
 
-ttk.Label(score_flags_2_frame, text="Flag 2:").grid(column=2, row=0, sticky=tk.W, padx=(0, 1))
+ttk.Label(score_flags_2_frame, text="Flag 2:").grid(column=2, row=3, sticky=tk.W, padx=(0, 1))
 combo_flag2 = ttk.Combobox(score_flags_2_frame, textvariable=flag2_var, values=country_names, state='readonly', width=13)
-combo_flag2.grid(column=3, row=0, padx=1, sticky="ns")
+combo_flag2.grid(column=3, row=3, padx=1, sticky="ns")
 combo_flag2.bind("<<ComboboxSelected>>", lambda e: (
     update_flag_image(get_country_code(combo_flag2.get()), 2),
     remove_focus()
@@ -864,9 +864,6 @@ def increment_score(score_var, amount):
         score_var.set(str(new_score))
         save_to_file(f"Score {score_var.score_id}", new_score)
 
-score1_var.score_id = 1
-score2_var.score_id = 2
-
 def start_increment_hold(score_var, amount, button):
     global hold_job, is_holding
     if not is_holding:
@@ -886,7 +883,7 @@ def stop_hold(event):
         hold_job = None
         is_holding = False
 
-# Mouse button bindings
+# Arrow button bindings
 btn_up1.bind("<ButtonPress-1>", lambda e: start_increment_hold(score1_var, 1, btn_up1))
 btn_up1.bind("<ButtonRelease-1>", stop_hold)
 btn_down1.bind("<ButtonPress-1>", lambda e: start_increment_hold(score1_var, -1, btn_down1))
@@ -974,12 +971,14 @@ def reset_all():
     reset_players()
     bracket_var.set("")
     event_var.set("")
+    round_var.set("")
     save_to_file("Bracket", "")
     save_to_file("Event", "")
+    save_to_file("Round", "")
 
-# --- Button Layout (ROW 3) ---
+# ROW 4 (Buttons)
 button_frame = ttk.Frame(frame)
-button_frame.grid(column=0, row=3, columnspan=4, pady=(10, 0), sticky=tk.W+tk.E)
+button_frame.grid(column=0, row=4, columnspan=4, pady=(10, 0), sticky=tk.W+tk.E)
 
 swap_names_btn = ttk.Button(button_frame, text="Swap Names", command=swap_names)
 swap_scores_btn = ttk.Button(button_frame, text="Swap Scores", command=swap_scores)
@@ -987,11 +986,11 @@ reset_names_btn = ttk.Button(button_frame, text="Swap Flags", command=swap_flags
 reset_scores_btn = ttk.Button(button_frame, text="Reset Players", command=reset_players)
 reset_all_btn = ttk.Button(button_frame, text="Reset All", command=reset_all)
 
-swap_names_btn.grid(row=0, column=0, padx=2, pady=2, sticky=tk.W+tk.E)
-swap_scores_btn.grid(row=0, column=1, padx=2, pady=2, sticky=tk.W+tk.E)
-reset_names_btn.grid(row=0, column=2, padx=2, pady=2, sticky=tk.W+tk.E)
-reset_scores_btn.grid(row=0, column=3, padx=2, pady=2, sticky=tk.W+tk.E)
-reset_all_btn.grid(row=0, column=4, padx=2, pady=2, sticky=tk.W+tk.E)
+swap_names_btn.grid(row=4, column=0, padx=2, pady=2, sticky=tk.W+tk.E)
+swap_scores_btn.grid(row=4, column=1, padx=2, pady=2, sticky=tk.W+tk.E)
+reset_names_btn.grid(row=4, column=2, padx=2, pady=2, sticky=tk.W+tk.E)
+reset_scores_btn.grid(row=4, column=3, padx=2, pady=2, sticky=tk.W+tk.E)
+reset_all_btn.grid(row=4, column=4, padx=2, pady=2, sticky=tk.W+tk.E)
 
 button_frame.grid_columnconfigure(0, weight=1)
 button_frame.grid_columnconfigure(1, weight=1)
