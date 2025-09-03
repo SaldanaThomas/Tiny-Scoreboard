@@ -15,6 +15,14 @@ CONFIG_PATH = os.path.join(os.getcwd(), 'Config')
 FILES_PATH = os.path.join(os.getcwd(), 'Files')
 BACKUP_FILE = os.path.join(CONFIG_PATH, "Backup.txt")
 
+# Remake Config folder if user deleted
+if not os.path.isdir(CONFIG_PATH):
+    os.mkdir(CONFIG_PATH)
+
+# Remake Files folder if user deleted
+if not os.path.isdir(FILES_PATH):
+    os.mkdir(FILES_PATH)
+
 # ----------------------------
 # Instance Locking
 # ----------------------------
@@ -52,11 +60,11 @@ def load_saved_path():
     if not os.path.exists(BACKUP_FILE):
         with open(BACKUP_FILE, "w", encoding="utf-8") as f:
             f.write('')
-        return ''
+        return FILES_PATH
 
     with open(BACKUP_FILE, "r", encoding="utf-8") as f:
         path = f.read().strip()
-        return path if os.path.isdir(path) else ''
+        return path if os.path.isdir(path) else FILES_PATH
 
 BACKUP_LOCATION = load_saved_path()
 
