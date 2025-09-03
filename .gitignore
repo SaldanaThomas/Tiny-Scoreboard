@@ -7,7 +7,10 @@ Tiny Scoreboard.spec
 /__pycache__/
 
 # Ignore user files
-/Config/
+/Config/Backup.txt
+/Config/PlayerList.txt
+/Config/Theme.txt
+/Config/lock.txt
 /Files/Bracket.txt
 /Files/Event.txt
 /Files/Flag1.txt
