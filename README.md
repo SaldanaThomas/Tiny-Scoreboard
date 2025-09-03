@@ -6,6 +6,8 @@
 - Auto complete player names
 - Quick Swapping/Resetting data
 - Various Themes
+- Flag imaage generation
+- OBS template/importing
 
 ## Data fields are generated to .txt files which can then be linked to OBS or other streaming platforms
 
