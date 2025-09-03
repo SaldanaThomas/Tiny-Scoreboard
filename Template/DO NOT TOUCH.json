@@ -1,12 +1,12 @@
 {
-    "current_scene": "Template",
-    "current_program_scene": "Template",
+    "current_scene": "OBS Template",
+    "current_program_scene": "OBS Template",
     "scene_order": [
         {
-            "name": "Template"
+            "name": "OBS Template"
         }
     ],
-    "name": "Template",
+    "name": "OBS Template",
     "groups": [
         {
             "prev_ver": 520159234,
@@ -1141,7 +1141,7 @@
         },
         {
             "prev_ver": 520159234,
-            "name": "Template",
+            "name": "OBS Template",
             "uuid": "36448356-9497-48e5-a926-8e0f4b36317c",
             "id": "scene",
             "versioned_id": "scene",
