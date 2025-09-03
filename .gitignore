@@ -5,13 +5,9 @@ Tiny Scoreboard.spec
 
 # Ignore pycache
 /__pycache__/
-/Config/__pycache__
 
 # Ignore user files
-/Config/Backup.txt
-/Config/PlayerList.txt
-/Config/Theme.txt
-/Config/lock.txt
+/Config/
 /Files/Bracket.txt
 /Files/Event.txt
 /Files/Flag1.txt
@@ -24,3 +20,7 @@ Tiny Scoreboard.spec
 /Files/Flag1.png
 /Files/Flag2.png
 /Template/OBS Template.json
+
+# Unignore specific files within the Config directory
+!/Config/country_data.py
+!/Config/theme_data.py
