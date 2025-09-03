@@ -4,10 +4,10 @@ import shutil
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from tkinter import font as tkfont
-from country_data import country_map, country_names
-from theme_data import themes, theme_colors
 from update_json import update_json_paths
 from blank_image import make_image_blank
+from Config.country_data import country_map, country_names
+from Config.theme_data import themes, theme_colors
 
 # ----------------------------
 # File Path Constants
@@ -17,11 +17,11 @@ CONFIG_PATH = os.path.join(os.getcwd(), 'Config')
 FILES_PATH = os.path.join(os.getcwd(), 'Files')
 BACKUP_FILE = os.path.join(CONFIG_PATH, "Backup.txt")
 
-# Remake Config folder if user deleted
+# Remake Config folder if missing
 if not os.path.isdir(CONFIG_PATH):
     os.mkdir(CONFIG_PATH)
 
-# Remake Files folder if user deleted
+# Remake Files folder if missing
 if not os.path.isdir(FILES_PATH):
     os.mkdir(FILES_PATH)
 
