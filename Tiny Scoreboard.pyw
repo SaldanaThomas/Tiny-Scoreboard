@@ -1,11 +1,13 @@
-import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
-from tkinter import font as tkfont
 import os
 import sys
 import shutil
+import tkinter as tk
+from tkinter import ttk, messagebox, filedialog
+from tkinter import font as tkfont
 from country_data import country_map, country_names
 from theme_data import themes, theme_colors
+from update_json import update_json_paths
+from blank_image import make_image_blank
 
 # ----------------------------
 # File Path Constants
@@ -42,10 +44,10 @@ def acquire_lock():
         return lock_file
 
     except (IOError, OSError) as e:
-        messagebox.showerror("Error", "Another instance of the application is already running.")
+        messagebox.showerror("Error", "Another Instance Of The Application Is Already Running.")
         sys.exit(1)
     except Exception as e:
-        messagebox.showerror("Error", f"An unexpected error occurred: {e}")
+        messagebox.showerror("Error", f"An Nnexpected Error Occurred: {e}")
         if lock_file:
             lock_file.close()
         sys.exit(1)
@@ -86,9 +88,9 @@ def save_path_to_config(new_path):
                         with open(src, "rb") as fsrc, open(dst, "wb") as fdst:
                             fdst.write(fsrc.read())
                     except Exception as e:
-                        messagebox.showerror("Backup Error", f"Could not copy {filename}:\n{e}")
+                        messagebox.showerror("Backup Error", f"Could Not Copy {filename}:\n{e}")
         except Exception as e:
-            messagebox.showerror("Backup Error", f"Could not create backup:\n{e}")
+            messagebox.showerror("Backup Error", f"Could Not Create Backup:\n{e}")
 
     # Remove files from previous backup path
     if previous_path != '' and previous_path != FILES_PATH:
@@ -97,9 +99,9 @@ def save_path_to_config(new_path):
                 try:
                     os.remove(os.path.join(previous_path, filename))
                 except Exception as e:
-                    print(f"Error deleting {filename} from previous backup path:\n{e}")
+                    messagebox.showerror("Deletion Error", f"Error Deleting {filename} From Previous Backup Path:\n{e}")
         except Exception as e:
-            print(f"Error accessing previous backup path for cleanup:\n{e}")
+            messagebox.showerror("Deletion Error", f"Error Accessing Previous Backup Path For Cleanup:\n{e}")
 
     # Save updated path to config file
     with open(BACKUP_FILE, "w", encoding="utf-8") as f:
@@ -157,7 +159,6 @@ def save_to_file(label, value):
     
     # Save to file
     primary_path = file_paths[label]
-    print(primary_path)
     with open(primary_path, 'w', encoding='utf-8') as f:
         f.write(value_to_write)
 
@@ -168,7 +169,7 @@ def save_to_file(label, value):
             with open(backup_file_path, 'w', encoding='utf-8') as f:
                 f.write(value_to_write)
         except Exception as e:
-            messagebox.showerror("Backup Write Error", f"Failed to write backup for {label}:\n{e}")
+            messagebox.showerror("Backup Write Error", f"Failed To Write Backup For {label}:\n{e}")
 
 # ----------------------------
 # Utility Functions
@@ -517,7 +518,7 @@ def update_theme_checkmarks():
 menubar = tk.Menu(root)
 settings_menu = tk.Menu(menubar, tearoff=0)
 
-def show_file_location():
+def show_backup_location():
     if not BACKUP_LOCATION or BACKUP_LOCATION == FILES_PATH:
         messagebox.showinfo("File Location", "No Current Backup Location Set\n\nSetting This Will Generate Scoreboard Files In A Second Location\n\nThis Is Useful If You Want To Keep Scoreboard Files In Same Location As Other Streaming Assets")
     else:
@@ -529,7 +530,7 @@ def choose_new_save_path():
         save_path_to_config(new_path)
         messagebox.showinfo("Backup Location Updated", f"New Backup Path:\n{new_path}")
 
-settings_menu.add_command(label="Backup Location", command=show_file_location)
+settings_menu.add_command(label="Backup Location", command=show_backup_location)
 settings_menu.add_command(label="Set Backup Location", command=choose_new_save_path)
 
 # Update PlayerList.txt file
@@ -643,6 +644,7 @@ def manage_players_window():
     bind_enter_to_invoke(remove_player_button)
 
 settings_menu.add_command(label="Manage Players", command=manage_players_window)
+settings_menu.add_command(label="Create Template JSON", command=update_json_paths)
 
 theme_submenu = tk.Menu(settings_menu, tearoff=0)
 settings_menu.add_cascade(label="Theme", menu=theme_submenu)
@@ -697,17 +699,16 @@ def update_flag_image(country_code, flag_number):
             shutil.copyfile(selected_flag, saved_flag)
             if BACKUP_LOCATION != CONFIG_PATH:
                 shutil.copyfile(selected_flag, backup_flag)
-            print(f"Copied flag from {selected_flag} to {saved_flag}")
         except Exception as e:
-            messagebox.showerror("Flag Error", f"Failed to copy flag image:\n{e}")
+            messagebox.showerror("Flag Error", f"Failed To Copy Flag Image:\n{e}")
     elif os.path.exists(saved_flag):
         # If new selection is no flag, remove destination image
         try:
-            os.remove(saved_flag)
+            make_image_blank(saved_flag)
             if BACKUP_LOCATION != CONFIG_PATH:
-                os.remove(backup_flag)
+                make_image_blank(backup_flag)
         except Exception as e:
-            print(f"Failed to remove old flag image: {e}")
+            print(f"Failed To Remove Old Flag Image: {e}")
 
     # Save the country code to the flag file, even if no image exists
     if flag_number == 1:
@@ -927,18 +928,19 @@ def reset_players():
     flag2_var.set("")
     save_to_file("Flag 1", "")
     save_to_file("Flag 2", "")
-    flag1_path = os.path.join(BACKUP_LOCATION, "Flag1.png")
-    flag2_path = os.path.join(BACKUP_LOCATION, "Flag2.png")
+    flag1_path = os.path.join(FILES_PATH, "Flag1.png")
+    flag2_path = os.path.join(FILES_PATH, "Flag2.png")
     if os.path.exists(flag1_path):
-        try:
-            os.remove(flag1_path)
-        except Exception as e:
-            print(f"Error removing Flag1.png: {e}")
+        make_image_blank(flag1_path)
     if os.path.exists(flag2_path):
-        try:
-            os.remove(flag2_path)
-        except Exception as e:
-            print(f"Error removing Flag2.png: {e}")
+        make_image_blank(flag2_path)
+    if BACKUP_LOCATION != FILES_PATH:
+        flag1_backup_path = os.path.join(BACKUP_LOCATION, "Flag1.png")
+        flag2_backup_path = os.path.join(BACKUP_LOCATION, "Flag2.png")
+        if os.path.exists(flag1_backup_path):
+            make_image_blank(flag1_backup_path)
+        if os.path.exists(flag2_backup_path):
+            make_image_blank(flag2_backup_path)
 
 def reset_all():
     reset_players()

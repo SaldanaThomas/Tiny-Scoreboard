@@ -5,17 +5,3 @@ Tiny Scoreboard.spec
 
 # Ignore pycache
 /__pycache__/
-
-# Ignore user files
-/Config/
-/Files/Bracket.txt
-/Files/Event.txt
-/Files/Flag1.txt
-/Files/Flag2.txt
-/Files/Player1.txt
-/Files/Player2.txt
-/Files/Round.txt
-/Files/Score1.txt
-/Files/Score2.txt
-/Files/Flag1.png
-/Files/Flag2.png
