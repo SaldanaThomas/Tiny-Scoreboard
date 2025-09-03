@@ -61,9 +61,9 @@ theme_colors = {
     },
     "Midnight": {
         "bg": "#09141F",
-        "fg": "#ECE6C5",
+        "fg": "#ECD1C5",
         "entry_bg": "#0F2133",
-        "entry_fg": "#ECE6C5",
+        "entry_fg": "#ECD1C5",
         "btn_bg": "#0C1A29"
     },
     "Wine": {

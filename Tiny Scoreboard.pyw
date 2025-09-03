@@ -8,107 +8,71 @@ from country_data import country_map, country_names
 from theme_data import themes, theme_colors
 
 # ----------------------------
-# Platform-specific Data Directory
+# File Path Constants
 # ----------------------------
 
-def get_user_data_dir():
-    """
-    Returns the platform-specific user data directory for the application.
-    This directory will be used for both the lock file and all data files.
-    """
-    if sys.platform == 'win32':
-        # On Windows, use AppData/Local
-        data_dir = os.path.join(os.path.expanduser('~'), 'AppData', 'Local', 'Tiny Scoreboard')
-    elif sys.platform == 'darwin':  # macOS
-        # On macOS, use Library/Application Support
-        data_dir = os.path.join(os.path.expanduser('~'), 'Library', 'Application Support', 'Tiny Scoreboard')
-    else:  # Linux/Unix
-        # On Linux, use .local/share
-        data_dir = os.path.join(os.path.expanduser('~'), '.local', 'share', 'tiny scoreboard')
-    
-    os.makedirs(data_dir, exist_ok=True)
-    return data_dir
+CONFIG_PATH = os.path.join(os.getcwd(), 'Config')
+FILES_PATH = os.path.join(os.getcwd(), 'Files')
+BACKUP_FILE = os.path.join(CONFIG_PATH, "Backup.txt")
 
 # ----------------------------
 # Instance Locking
 # ----------------------------
 
-try:
-    user_data_dir = get_user_data_dir()
-    lock_file_path = os.path.join(user_data_dir, 'lock.txt')
-    
-    lock_file = open(lock_file_path, 'w')
-    
-    if sys.platform == 'win32':
-        import msvcrt
-        msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
-    else:  # Unix-like systems
-        import fcntl
-        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-except Exception:
-    messagebox.showerror("Error", "Another instance of the application is already running.")
-    sys.exit(1)
+def acquire_lock():
+    lock_path = os.path.join(CONFIG_PATH, 'lock.txt')
+    lock_file = None
+    try:
+        lock_file = open(lock_path, 'w')
+
+        if sys.platform == 'win32': # Windows
+            import msvcrt
+            msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
+        else:  # Unix-like systems
+            import fcntl
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return lock_file
+
+    except (IOError, OSError) as e:
+        messagebox.showerror("Error", "Another instance of the application is already running.")
+        sys.exit(1)
+    except Exception as e:
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}")
+        if lock_file:
+            lock_file.close()
+        sys.exit(1)
+
+lock_handle = acquire_lock()
 
 # ----------------------------
-# Utility Functions
+# Backup Configuration
 # ----------------------------
-
-def remove_focus(event=None):
-    """Remove focus from any widget (sets focus to root)."""
-    root.focus_set()
-
-def bind_enter_to_invoke(button):
-    """Binds the Enter key to a button's command."""
-    button.bind('<KeyPress-Return>', lambda e: (button.invoke(), 'break'))
-
-# ----------------------------
-# Path Configuration
-# ----------------------------
-
-PERSISTENT_DATA_DIR = user_data_dir
-CONFIG_FILE = os.path.join(PERSISTENT_DATA_DIR, "config.txt")
 
 def load_saved_path():
-    """
-    Load the saved backup path from config.txt.
-    - If config.txt doesn't exist, create it with PERSISTENT_DATA_DIR.
-    - If the stored path doesn't exist, fall back to PERSISTENT_DATA_DIR.
-    """
-    if not os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-            f.write(PERSISTENT_DATA_DIR)
-        return PERSISTENT_DATA_DIR
+    if not os.path.exists(BACKUP_FILE):
+        with open(BACKUP_FILE, "w", encoding="utf-8") as f:
+            f.write('')
+        return ''
 
-    with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+    with open(BACKUP_FILE, "r", encoding="utf-8") as f:
         path = f.read().strip()
-        return path if os.path.isdir(path) else PERSISTENT_DATA_DIR
+        return path if os.path.isdir(path) else ''
 
-backup_path = load_saved_path()
+BACKUP_LOCATION = load_saved_path()
 
 def save_path_to_config(new_path):
-    """
-    Save a new backup path to the config file and handle file transfers.
-    - Copies .txt files from PERSISTENT_DATA_DIR to the new path, excluding
-      config.txt and Theme.txt. - Cleans up old backup path if it's not PERSISTENT_DATA_DIR.
-    """
-    global backup_path
-
+    global BACKUP_LOCATION
     new_path = os.path.abspath(new_path)
     os.makedirs(new_path, exist_ok=True)
-
-    previous_backup_path = backup_path
-    backup_path = new_path
-
-    # Files to exclude from copying
-    excluded_files = ["lock.txt", "config.txt", "Theme.txt", "PlayerList.txt"]
+    previous_path = BACKUP_LOCATION
+    BACKUP_LOCATION = new_path
 
     # Copy files to new backup location
-    if new_path != PERSISTENT_DATA_DIR:
+    if new_path != previous_path and new_path != FILES_PATH:
         try:
-            for filename in os.listdir(PERSISTENT_DATA_DIR):
-                # Check if the file should be copied
-                if filename.endswith(".txt") and filename not in excluded_files:
-                    src = os.path.join(PERSISTENT_DATA_DIR, filename)
+            for filename in os.listdir(FILES_PATH):
+                if filename != "Flags":
+                    src = os.path.join(FILES_PATH, filename)
                     dst = os.path.join(new_path, filename)
                     try:
                         with open(src, "rb") as fsrc, open(dst, "wb") as fdst:
@@ -119,21 +83,19 @@ def save_path_to_config(new_path):
             messagebox.showerror("Backup Error", f"Could not create backup:\n{e}")
 
     # Remove files from previous backup path
-    if previous_backup_path != PERSISTENT_DATA_DIR and previous_backup_path != new_path:
+    if previous_path != '' and previous_path != FILES_PATH:
         try:
-            for filename in os.listdir(previous_backup_path):
-                # Check if the file should be removed
-                if filename.endswith(".txt") and filename not in excluded_files:
-                    try:
-                        os.remove(os.path.join(previous_backup_path, filename))
-                    except Exception as e:
-                        print(f"Error deleting {filename} from previous backup path:\n{e}")
+            for filename in os.listdir(FILES_PATH):
+                try:
+                    os.remove(os.path.join(previous_path, filename))
+                except Exception as e:
+                    print(f"Error deleting {filename} from previous backup path:\n{e}")
         except Exception as e:
             print(f"Error accessing previous backup path for cleanup:\n{e}")
 
-    # Save updated path to the config file (this file itself is not copied)
-    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-        f.write(backup_path)
+    # Save updated path to config file
+    with open(BACKUP_FILE, "w", encoding="utf-8") as f:
+        f.write(BACKUP_LOCATION)
 
 # ----------------------------
 # File Management
@@ -143,45 +105,43 @@ def save_path_to_config(new_path):
 def set_file_paths():
     global file_paths
     file_paths = {
-        "Player 1": os.path.join(PERSISTENT_DATA_DIR, "Player1.txt"),
-        "Player 2": os.path.join(PERSISTENT_DATA_DIR, "Player2.txt"),
-        "Score 1": os.path.join(PERSISTENT_DATA_DIR, "Score1.txt"),
-        "Score 2": os.path.join(PERSISTENT_DATA_DIR, "Score2.txt"),
-        "Bracket": os.path.join(PERSISTENT_DATA_DIR, "Bracket.txt"),
-        "Event": os.path.join(PERSISTENT_DATA_DIR, "Event.txt"),
-        "Round": os.path.join(PERSISTENT_DATA_DIR, "Round.txt"),
-        "Theme": os.path.join(PERSISTENT_DATA_DIR, "Theme.txt"),
-        "Flag 1": os.path.join(PERSISTENT_DATA_DIR, "Flag1.txt"),
-        "Flag 2": os.path.join(PERSISTENT_DATA_DIR, "Flag2.txt"),
-        "PlayerList": os.path.join(PERSISTENT_DATA_DIR, "PlayerList.txt"),
+        "Player 1": os.path.join(FILES_PATH, "Player1.txt"),
+        "Player 2": os.path.join(FILES_PATH, "Player2.txt"),
+        "Score 1": os.path.join(FILES_PATH, "Score1.txt"),
+        "Score 2": os.path.join(FILES_PATH, "Score2.txt"),
+        "Event": os.path.join(FILES_PATH, "Event.txt"),
+        "Bracket": os.path.join(FILES_PATH, "Bracket.txt"),
+        "Round": os.path.join(FILES_PATH, "Round.txt"),
+        "Flag 1": os.path.join(FILES_PATH, "Flag1.txt"),
+        "Flag 2": os.path.join(FILES_PATH, "Flag2.txt"),
+        "Backup": os.path.join(CONFIG_PATH, "Backup.txt"),
+        "PlayerList": os.path.join(CONFIG_PATH, "PlayerList.txt"),
+        "Theme": os.path.join(CONFIG_PATH, "Theme.txt"),
     }
 
-# Create missing files with default values
+# Create missing scoreboard files with default values
 def initialize_files():
     for label, path in file_paths.items():
         if not os.path.exists(path):
             with open(path, 'w', encoding='utf-8') as f:
                 if "Score" in label:
                     f.write("0")
-                elif label == "Theme":
-                    f.write("Dark")
                 else:
-                    f.write("")  # Default empty value
+                    f.write("")
 
 set_file_paths()
 initialize_files()
 
 # Update file with new value; update backup file if applicable
 def save_to_file(label, value):
-    # Exclude specific files from being saved to the backup path
-    if label in ("Theme", "PlayerList"):
-        # Save only to the primary file path
+    # Special handling for Config files. Prevent save to backup location
+    if label in ('Backup', "PlayerList", "Theme"):
         primary_path = file_paths[label]
         with open(primary_path, 'w', encoding='utf-8') as f:
             f.write(str(value))
         return
 
-    # Special handling for score files to write empty strings for empty values
+    # Special handling for score files to allow empty strings
     if "Score" in label:
         value_to_write = str(value) if value is not None and value != '' else ''
     else:
@@ -189,17 +149,30 @@ def save_to_file(label, value):
     
     # Save to file
     primary_path = file_paths[label]
+    print(primary_path)
     with open(primary_path, 'w', encoding='utf-8') as f:
         f.write(value_to_write)
 
-    # Save to backup file
-    if backup_path != PERSISTENT_DATA_DIR:
-        backup_file_path = os.path.join(backup_path, os.path.basename(primary_path))
+    # Save to backup location
+    if BACKUP_LOCATION != CONFIG_PATH:
+        backup_file_path = os.path.join(BACKUP_LOCATION, os.path.basename(primary_path))
         try:
             with open(backup_file_path, 'w', encoding='utf-8') as f:
                 f.write(value_to_write)
         except Exception as e:
             messagebox.showerror("Backup Write Error", f"Failed to write backup for {label}:\n{e}")
+
+# ----------------------------
+# Utility Functions
+# ----------------------------
+
+# Remove focus from any widget (sets focus to root)
+def remove_focus(event=None):
+    root.focus_set()
+
+# Binds the Enter key to a button's command
+def bind_enter_to_invoke(button):
+    button.bind('<KeyPress-Return>', lambda e: (button.invoke(), 'break'))
 
 # ----------------------------
 # Autocomplete functionality
@@ -216,9 +189,8 @@ def load_player_list():
 
 PLAYER_LIST = load_player_list()
 
+# Binds an Entry widget to an autocomplete Listbox with keyboard navigation and mouse support
 def autocomplete_entry_bind(entry, listbox, var, player_number):
-    """Binds an Entry widget to an autocomplete Listbox with keyboard navigation and mouse support."""
-
     def on_key_press(event):
         # Handle Up and Down arrow keys for navigation
         if event.keysym in ("Down", "Up"):
@@ -252,9 +224,8 @@ def autocomplete_entry_bind(entry, listbox, var, player_number):
                 listbox.see(next_idx)
             return "break"
 
+    # Handle key releases for both saving and autocomplete
     def on_key_release(event):
-        """Handle key releases for both saving and autocomplete."""
-        
         # Save the current text to the file on every key release
         save_to_file(f"Player {player_number}", var.get())
         
@@ -282,8 +253,8 @@ def autocomplete_entry_bind(entry, listbox, var, player_number):
         else:
             listbox.place_forget()
 
+    # Called when a user clicks on a listbox item
     def on_select(event):
-        """Called when a user clicks on a listbox item."""
         if listbox.curselection():
             selected_name = listbox.get(listbox.curselection())
             var.set(selected_name)
@@ -291,8 +262,8 @@ def autocomplete_entry_bind(entry, listbox, var, player_number):
             save_to_file(f"Player {player_number}", selected_name)
             remove_focus()
 
+    # Handles the 'Return' key press
     def on_enter(event):
-        """Handles the 'Return' key press."""
         if listbox.winfo_ismapped() and listbox.curselection():
             on_select(None)
         else:
@@ -300,28 +271,28 @@ def autocomplete_entry_bind(entry, listbox, var, player_number):
             entry.selection_clear()
             remove_focus()
 
+    # Clears selection on focus out and closes the listbox if another widget has focus
     def on_focus_out(event):
-        """Clears selection on focus out and closes the listbox if another widget has focus."""
         entry.selection_clear()
         
         # Use a small delay to allow the focus change to fully register
         root.after(1, lambda: on_focus_out_check(event))
 
+    # The actual check for the focus change
     def on_focus_out_check(event):
-        """The actual check for the focus change."""
         new_focus_widget = root.focus_get()
         if new_focus_widget != listbox:
             listbox.place_forget()
 
+    # Highlights a listbox item when the mouse hovers over it
     def on_hover(event):
-        """Highlights a listbox item when the mouse hovers over it."""
         index = listbox.nearest(event.y)
         listbox.selection_clear(0, tk.END)
         listbox.selection_set(index)
         listbox.activate(index)
 
+    # Clears the selection when the mouse leaves the listbox
     def on_leave(event):
-        """Clears the selection when the mouse leaves the listbox."""
         listbox.selection_clear(0, tk.END)
         listbox.activate(tk.END)
 
@@ -334,14 +305,7 @@ def autocomplete_entry_bind(entry, listbox, var, player_number):
     listbox.bind("<Motion>", on_hover)
     listbox.bind("<Leave>", on_leave)
 
-# ----------------------------
-# Constants
-# ----------------------------
 
-MIN_SCORE = 0
-MAX_SCORE = 9999
-hold_job = None
-is_holding = False
 
 # ----------------------------
 # Tkinter Setup
@@ -361,21 +325,16 @@ dropdown_font = tkfont.nametofont("TkDefaultFont").copy()
 dropdown_font.configure(size=9)
 root.option_add("*TCombobox*Listbox*Font", dropdown_font)
 
-
 # Theme loading
 try:
     with open(file_paths["Theme"], "r", encoding="utf-8") as f:
         saved_theme = f.read().strip()
-    current_theme = tk.StringVar(
-            value=saved_theme if saved_theme in ["Light", "Dark", "High Contrast", "Forest", "Ocean", "Mountain", "Sunrise", "Sunset", "Midnight", "Wine"]
-            else "Dark"
-        )
+    current_theme = tk.StringVar(value=saved_theme if saved_theme in theme_colors else "Dark")
 except FileNotFoundError:
     current_theme = tk.StringVar(value="Dark")
 
 frame = ttk.Frame(root, padding=5)
 frame.grid()
-
 
 # ----------------------------
 # Tkinter Variables
@@ -392,7 +351,6 @@ event_var = tk.StringVar()
 round_var = tk.StringVar()
 flag1_var = tk.StringVar()
 flag2_var = tk.StringVar()
-
 
 # ----------------------------
 # Variable Loading
@@ -420,8 +378,8 @@ def load_all_vars():
     load_var(p2_var, "Player 2")
     load_var(score1_var, "Score 1")
     load_var(score2_var, "Score 2")
-    load_var(bracket_var, "Bracket")
     load_var(event_var, "Event")
+    load_var(bracket_var, "Bracket")
     load_var(round_var, "Round")
     load_var(flag1_var, "Flag 1")
     load_var(flag2_var, "Flag 2")
@@ -443,9 +401,8 @@ style.layout("Vertical.TScrollbar", [
     ("Vertical.Scrollbar.thumb", {'unit': '1', 'sticky': 'nswe'}),
 ])
 
+# Blend two HEX colors together at a given ratio and brighten the result
 def blend_color(hex1, hex2, ratio=0.5):
-    """Blend two HEX colors together at a given ratio and brighten the result."""
-
     def hex_to_rgb(hex_code):
         return tuple(int(hex_code[i:i + 2], 16) for i in (1, 3, 5))
 
@@ -465,15 +422,15 @@ def blend_color(hex1, hex2, ratio=0.5):
 
     return brighten(blended_hex)
 
+# Set button hover and focus background to 50% opacity blend
 def set_button_hover_effect(style, normal_bg, parent_bg):
-    """Set button hover and focus background to 50% opacity blend."""
     hover_bg = blend_color(normal_bg, parent_bg, 0.5)
     style.map("TButton",
               background=[("active", hover_bg), ("focus", hover_bg)],
               relief=[("pressed", "sunken"), ("!pressed", "raised")])
 
+# Updates the colors of the Manage Players listbox based on the current theme
 def update_manage_players_listbox_theme():
-    """Updates the colors of the Manage Players listbox based on the current theme."""
     if manage_players_win_instance and manage_players_win_instance.winfo_exists():
         entry_bg_color = style.lookup("TEntry", "fieldbackground")
         entry_fg_color = style.lookup("TEntry", "foreground")
@@ -553,23 +510,22 @@ menubar = tk.Menu(root)
 settings_menu = tk.Menu(menubar, tearoff=0)
 
 def show_file_location():
-    if not backup_path or backup_path == PERSISTENT_DATA_DIR:
-        messagebox.showinfo("File Location", "No Current File Location Set.\n\nSetting This Will Create Loose Files In Designated Location For All Input Fields.")
+    if not BACKUP_LOCATION or BACKUP_LOCATION == FILES_PATH:
+        messagebox.showinfo("File Location", "No Current Backup Location Set\n\nSetting This Will Generate Scoreboard Files In A Second Location\n\nThis Is Useful If You Want To Keep Scoreboard Files In Same Location As Other Streaming Assets")
     else:
-        messagebox.showinfo("File Location", f"Files Are Saved To:\n{backup_path}")
+        messagebox.showinfo("File Location", f"Backup Files Are Saved To:\n{BACKUP_LOCATION}")
 
 def choose_new_save_path():
-    new_path = filedialog.askdirectory(initialdir=backup_path, title="Select Folder To Save Files")
+    new_path = filedialog.askdirectory(initialdir=BACKUP_LOCATION, title="Select Location To Save Backup Files")
     if new_path:
         save_path_to_config(new_path)
-        messagebox.showinfo("Save Location Updated", f"New save path:\n{new_path}")
+        messagebox.showinfo("Backup Location Updated", f"New Backup Path:\n{new_path}")
 
-settings_menu.add_command(label="File Location", command=show_file_location)
-settings_menu.add_command(label="Set File Location", command=choose_new_save_path)
+settings_menu.add_command(label="Backup Location", command=show_file_location)
+settings_menu.add_command(label="Set Backup Location", command=choose_new_save_path)
 
-# New "Manage Players" command
+# Update PlayerList.txt file
 def save_player_list():
-    """Saves the global PLAYER_LIST to the PlayerList.txt file."""
     player_list_path = file_paths["PlayerList"]
     with open(player_list_path, 'w', encoding='utf-8') as f:
         for player in PLAYER_LIST:
@@ -652,10 +608,8 @@ def manage_players_window():
     add_player_button.pack(side="left", padx=(5, 0))
     bind_enter_to_invoke(add_player_button)
 
-    # --- New Label for Autocomplete Info ---
     autocomplete_info_label = ttk.Label(frame, text="Added Players Become Auto Complete Options", font=small_font)
     autocomplete_info_label.pack(pady=(0, 10), anchor="center")
-    # -------------------------------------
 
     listbox_frame = ttk.Frame(frame)
     listbox_frame.pack(fill="both", expand=True)
@@ -694,6 +648,9 @@ for idx, theme in enumerate(themes):
 
 apply_theme(current_theme.get())
 
+MIN_SCORE = 0
+MAX_SCORE = 9999
+
 # --- Variable Callbacks ---
 def validate_score_input(new_value):
     if new_value == "":
@@ -719,27 +676,32 @@ def get_country_code(country_name):
 
 # Update designated flag png file
 def update_flag_image(country_code, flag_number):
-    flag_images = os.path.join(PERSISTENT_DATA_DIR, "Flags")
+    flag_images = os.path.join(FILES_PATH, "Flags")
     selected_flag = os.path.join(flag_images, f"{country_code}.png")
-    saved_flag = os.path.join(PERSISTENT_DATA_DIR, f"Flag{flag_number}.png")
+    saved_flag = os.path.join(FILES_PATH, f"Flag{flag_number}.png")
+    backup_flag = os.path.join(BACKUP_LOCATION, f"Flag{flag_number}.png")
 
     os.makedirs(flag_images, exist_ok=True)
     
-    # Copy the flag image if it exists, otherwise remove the destination image
+    # Copy flag image if it exists, otherwise remove destination image
     if os.path.exists(selected_flag):
         try:
             shutil.copyfile(selected_flag, saved_flag)
+            if BACKUP_LOCATION != CONFIG_PATH:
+                shutil.copyfile(selected_flag, backup_flag)
             print(f"Copied flag from {selected_flag} to {saved_flag}")
         except Exception as e:
             messagebox.showerror("Flag Error", f"Failed to copy flag image:\n{e}")
     elif os.path.exists(saved_flag):
-        # If the new selection has no flag, delete the existing one
+        # If new selection is no flag, remove destination image
         try:
             os.remove(saved_flag)
+            if BACKUP_LOCATION != CONFIG_PATH:
+                os.remove(backup_flag)
         except Exception as e:
             print(f"Failed to remove old flag image: {e}")
 
-    # Save the country code to the Flag file, even if no image exists
+    # Save the country code to the flag file, even if no image exists
     if flag_number == 1:
         flag_var = flag1_var
         label = "Flag 1"
@@ -804,8 +766,8 @@ ttk.Label(score_flags_1_frame, text="Flag 1:").grid(column=2, row=2, sticky=tk.W
 combo_flag1 = ttk.Combobox(score_flags_1_frame, textvariable=flag1_var, values=country_names, state='readonly', width=13)
 combo_flag1.grid(column=3, row=2, padx=1, sticky="ns")
 
+# Highlights the top item (index 0) of the dropdown list when it's opened
 def highlight_top_option(event):
-    """Highlights the top item (index 0) of the dropdown list when it's opened."""
     event.widget.configure(active=0)
 
 combo_flag1.bind("<<ComboboxSelected>>", lambda e: (
@@ -848,6 +810,9 @@ combo_flag2.bind("<<ComboboxSelected>>", lambda e: (
     remove_focus()
 ))
 combo_flag2.bind("<<ComboboxPopdown>>", highlight_top_option)
+
+hold_job = None
+is_holding = False
 
 def increment_score(score_var, amount):
     current_value = score_var.get()
@@ -914,7 +879,7 @@ def key_release_handler(event):
 root.bind('<KeyPress>', key_press_handler)
 root.bind('<KeyRelease>', key_release_handler)
 
-# --- Button Functions ---
+# Button Functions
 def swap_names():
     p1 = p1_var.get()
     p2 = p2_var.get()
@@ -954,8 +919,8 @@ def reset_players():
     flag2_var.set("")
     save_to_file("Flag 1", "")
     save_to_file("Flag 2", "")
-    flag1_path = os.path.join(PERSISTENT_DATA_DIR, "Flag1.png")
-    flag2_path = os.path.join(PERSISTENT_DATA_DIR, "Flag2.png")
+    flag1_path = os.path.join(BACKUP_LOCATION, "Flag1.png")
+    flag2_path = os.path.join(BACKUP_LOCATION, "Flag2.png")
     if os.path.exists(flag1_path):
         try:
             os.remove(flag1_path)
@@ -1005,16 +970,16 @@ bind_enter_to_invoke(reset_scores_btn)
 bind_enter_to_invoke(reset_all_btn)
 
 def on_close():
-    global lock_file
-    if 'lock_file' in globals():
+    global lock_handle
+    if 'lock_handle' in globals() and lock_handle:
         if sys.platform == 'win32':
             import msvcrt
-            msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+            msvcrt.locking(lock_handle.fileno(), msvcrt.LK_UNLCK, 1)
         else:
             import fcntl
-            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        lock_file.close()
-        os.remove(lock_file_path)
+            fcntl.flock(lock_handle.fileno(), fcntl.LOCK_UN)
+        lock_handle.close()
+        os.remove(lock_handle.name)
     root.destroy()
 
 root.protocol("WM_DELETE_WINDOW", on_close)
