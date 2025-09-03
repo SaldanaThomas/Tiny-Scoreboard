@@ -12,7 +12,9 @@
 ## Data fields are generated to .txt files which can then be linked to OBS or other streaming platforms
 
 <p>
-<img src=""/>
-<img src=""/>
-<img src=""/>
+<img src="assets/Scoreboard.png"/>
+<img src="assets/Themes.png"/>
+<img src="assets/Manage Players.png">
+<img src="assets/Auto Complete.png">
+<img src="assets/OBS Template.png">
 </p>
