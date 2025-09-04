@@ -21,7 +21,7 @@ def update_json_paths():
     current_dir = os.getcwd()
     template_dir = os.path.join(current_dir, 'Template')
     json_file = os.path.join(template_dir, 'DO NOT TOUCH.json')
-    output_file =  os.path.join(template_dir, 'OBS Template.json')
+    output_file =  os.path.join(template_dir, 'Sample OBS Scene.json')
 
     try:
         with open(json_file, 'r', encoding='utf-8') as f:
@@ -32,7 +32,7 @@ def update_json_paths():
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(updated_data, f, indent=4)
 
-        messagebox.showinfo('JSON File Created', 'OBS Template.json was successfully created and saved to Template directory')
+        messagebox.showinfo('JSON File Created', 'Sample OBS Scene.json was successfully created and saved to Template directory')
 
     except FileNotFoundError:
        messagebox.showerror('Missing File', f'DO NOT TOUCH.json was not found in {os.path.join(current_dir, 'Template')} directory')

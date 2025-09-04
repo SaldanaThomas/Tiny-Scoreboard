@@ -644,7 +644,7 @@ def manage_players_window():
     bind_enter_to_invoke(remove_player_button)
 
 settings_menu.add_command(label="Manage Players", command=manage_players_window)
-settings_menu.add_command(label="Create OBS Template", command=update_json_paths)
+settings_menu.add_command(label="Create OBS Scence", command=update_json_paths)
 
 theme_submenu = tk.Menu(settings_menu, tearoff=0)
 settings_menu.add_cascade(label="Theme", menu=theme_submenu)
